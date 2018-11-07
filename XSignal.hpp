@@ -99,10 +99,11 @@ public:
         return Connection<ReturnType(ArgsType...)>(*this,m_slots.begin());
     }
 
-    auto emit(ArgsType&&...args)
+    template <class...ArgsType2>
+    auto emit(ArgsType2&&...args)
     -> typename std::enable_if<!std::is_void<ReturnType>::value,ReturnType>::type{
         for(auto &itr:m_slots){
-            itr.ret_value = itr.func(std::forward<ArgsType>(args)...);
+            itr.ret_value = itr.func(std::forward<ArgsType2>(args)...);
         }
         return m_slots.begin()->ret_value;
     }
@@ -140,9 +141,10 @@ public:
         return Connection<void(ArgsType...)>(*this,m_slots.begin());
     }
 
-    void emit(ArgsType&&...args) {
+    template <class...ArgsType2>
+    void emit(ArgsType2&&...args) {
         for(auto &itr:m_slots){
-            itr.func(std::forward<ArgsType>(args)...);
+            itr.func(std::forward<ArgsType2>(args)...);
         }
     }
 protected:
