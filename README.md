@@ -2,7 +2,7 @@
 
 ## Description
 一个信号槽机制的实现<br>
-XSignal相较于前一版(signal-slot)进行了简化，并增加了功能
+XSignal相较于前一版([signal-slot](https://github.com/xstater/signal-slot))进行了简化，并增加了功能
 
 ## Details
 * XSignal中的Connection对象仅可移动，不可复制，保证Connection对象的唯一性
