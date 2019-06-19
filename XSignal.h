@@ -1,10 +1,10 @@
-#ifndef _XSIGNAL_HPP_
-#define _XSIGNAL_HPP_
+#ifndef _XSIGNAL_H_
+#define _XSIGNAL_H_
 
-#include <list>
 #include <functional>
 #include <type_traits>
-#include <utility>
+#include <memory>
+#include <list>
 
 namespace xsignal{
     template<class Type>
@@ -29,7 +29,7 @@ namespace xsignal{
         Connection &operator=(const Connection &) = delete;
         Connection &operator=(Connection &&) = default;
 
-        void disconnect(){
+        void disconnect()noexcept{
             m_signal.__remove(m_itr);
         }
 
@@ -59,7 +59,7 @@ namespace xsignal{
         Connection &operator=(const Connection &) = delete;
         Connection &operator=(Connection &&) = default;
 
-        void disconnect(){
+        void disconnect()noexcept{
             m_signal.__remove(m_itr);
         }
     protected:
@@ -85,28 +85,38 @@ namespace xsignal{
         using return_type = ReturnType;
 
         Signal() = default;
-        ~Signal(){
-            m_slots.clear();
-        }
+        ~Signal() = default;
 
-        void __remove(iter_type itr){
+        void __remove(iter_type itr)noexcept{
             m_slots.erase(itr);
         }
-        
+
         template<class Function>
-        auto operator+=(Function &&func)
+        auto connect(Function &&func)
         -> Connection<ReturnType(ArgsType...)>{
-            m_slots.emplace_front(std::forward<Function>(func));
-            return Connection<ReturnType(ArgsType...)>(*this,m_slots.begin());
+            m_slots.emplace_back(std::forward<Function>(func));
+            return Connection<ReturnType(ArgsType...)>(*this,std::prev(m_slots.end()));
         }
-        
+        template<class Function>
+        auto operator<<(Function &&func)
+        -> Signal &{
+            m_slots.emplace_back(std::forward<Function>(func));
+            return *this;
+        }
+
+        template <class...ArgsType2>
+        auto emit(ArgsType2&&...args)
+        -> typename std::enable_if<!std::is_void<ReturnType>::value,ReturnType>::type{
+            for(auto &slot:m_slots){
+                slot.ret_value = slot.func(std::forward<ArgsType2>(args)...);
+            }
+            return m_slots.begin()->ret_value;
+        }
+
         template <class...ArgsType2>
         auto operator()(ArgsType2&&...args)
         -> typename std::enable_if<!std::is_void<ReturnType>::value,ReturnType>::type{
-            for(auto &itr:m_slots){
-                itr.ret_value = itr.func(std::forward<ArgsType2>(args)...);
-            }
-            return m_slots.begin()->ret_value;
+            return emit(std::forward<ArgsType2>(args)...);
         }
     protected:
     private:
@@ -136,17 +146,27 @@ namespace xsignal{
         }
 
         template<class Function>
-        auto operator+=(Function &&func)
+        auto connect(Function &&func)
         -> Connection<void(ArgsType...)>{
-            m_slots.emplace_front(std::forward<Function>(func));
-            return Connection<void(ArgsType...)>(*this,m_slots.begin());
+            m_slots.emplace_back(std::forward<Function>(func));
+            return Connection<void(ArgsType...)>(*this,std::prev(m_slots.end()));
+        }
+        template<class Function>
+        auto operator<<(Function &&func)
+        -> Signal &{
+            m_slots.emplace_back(std::forward<Function>(func));
+            return *this;
         }
 
         template <class...ArgsType2>
-        void operator()(ArgsType2&&...args) {
+        void emit(ArgsType2&&...args) {
             for(auto &itr:m_slots){
                 itr.func(std::forward<ArgsType2>(args)...);
             }
+        }
+        template <class...ArgsType2>
+        void operator()(ArgsType2&&...args) {
+            emit(std::forward<ArgsType2>(args)...);
         }
     protected:
     private:
