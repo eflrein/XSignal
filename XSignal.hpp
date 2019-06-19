@@ -30,7 +30,7 @@ namespace xsignal{
         Connection &operator=(Connection &&) = default;
 
         void disconnect(){
-            m_signal._remove(m_itr);
+            m_signal.__remove(m_itr);
         }
 
         auto value()
@@ -60,7 +60,7 @@ namespace xsignal{
         Connection &operator=(Connection &&) = default;
 
         void disconnect(){
-            m_signal._remove(m_itr);
+            m_signal.__remove(m_itr);
         }
     protected:
     private:
@@ -89,19 +89,19 @@ namespace xsignal{
             m_slots.clear();
         }
 
-        void _remove(iter_type itr){
+        void __remove(iter_type itr){
             m_slots.erase(itr);
         }
-
+        
         template<class Function>
-        auto connect(Function &&func)
+        auto operator+=(Function &&func)
         -> Connection<ReturnType(ArgsType...)>{
             m_slots.emplace_front(std::forward<Function>(func));
             return Connection<ReturnType(ArgsType...)>(*this,m_slots.begin());
         }
-
+        
         template <class...ArgsType2>
-        auto emit(ArgsType2&&...args)
+        auto operator()(ArgsType2&&...args)
         -> typename std::enable_if<!std::is_void<ReturnType>::value,ReturnType>::type{
             for(auto &itr:m_slots){
                 itr.ret_value = itr.func(std::forward<ArgsType2>(args)...);
@@ -131,19 +131,19 @@ namespace xsignal{
             m_slots.clear();
         }
 
-        void _remove(iter_type itr){
+        void __remove(iter_type itr){
             m_slots.erase(itr);
         }
 
         template<class Function>
-        auto connect(Function &&func)
+        auto operator+=(Function &&func)
         -> Connection<void(ArgsType...)>{
             m_slots.emplace_front(std::forward<Function>(func));
             return Connection<void(ArgsType...)>(*this,m_slots.begin());
         }
 
         template <class...ArgsType2>
-        void emit(ArgsType2&&...args) {
+        void operator()(ArgsType2&&...args) {
             for(auto &itr:m_slots){
                 itr.func(std::forward<ArgsType2>(args)...);
             }
